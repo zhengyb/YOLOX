@@ -8,8 +8,17 @@
 #
 import json
 import os
+import argparse
 
 DEBUG = True
+
+# DATASET_SIZE = "sample" # sample, small, full
+
+DATASET_SCALES = {
+    # size: [<image_num_4_train>, <image_num_4_val>, <image_num_4_test>]
+    "sample": [70, 10, 20],
+    "small": [7000, 1000, 2000],
+}
 
 
 def _gather_categories(
@@ -138,7 +147,9 @@ def cocofmt_annotation_visualize(bdd100k_path, dataset_type="val", save_result=T
         print(f"Saved {visual_count} visualizations to {output_dir}")
 
 
-def convert_bdd100k_dataset_to_coco(dataset_path, categories, dataset_type="val"):
+def convert_bdd100k_dataset_to_coco(
+    dataset_path, categories, dataset_type="val", dataset_size=0
+):
     if not os.path.exists(dataset_path):
         raise FileNotFoundError(f"Dataset path {dataset_path} not found")
 
@@ -171,7 +182,7 @@ def convert_bdd100k_dataset_to_coco(dataset_path, categories, dataset_type="val"
 
         # Add image entry
         img_id = len(cocofmt_data["images"]) + 1
-        if DEBUG and img_id > 10:
+        if dataset_size > 0 and img_id > dataset_size:
             break
         cocofmt_data["images"].append(
             {
@@ -225,10 +236,10 @@ def convert_bdd100k_dataset_to_coco(dataset_path, categories, dataset_type="val"
     with open(anno_file, "w") as f:
         json.dump(cocofmt_data, f, indent=2)
 
-    print(f"Converted {ann_id - 1} annotations for {dataset_type} set")
+    print(f"Converted {ann_id - 1} annotations of {dataset_size} images for {dataset_type} set")
 
 
-def convert_bdd100k_to_coco(bdd100k_path):
+def convert_bdd100k_to_coco(bdd100k_path, dataset_size="full"):
     if not os.path.exists(bdd100k_path):
         raise FileNotFoundError(f"BDD100k path {bdd100k_path} not found")
     if not os.path.exists(os.path.join(bdd100k_path, "train")):
@@ -255,12 +266,42 @@ def convert_bdd100k_to_coco(bdd100k_path):
 
     cats = gather_categories(bdd100k_path)
 
-    convert_bdd100k_dataset_to_coco(bdd100k_path, cats, "val")
-    pass
+    if dataset_size == "sample" or dataset_size == "small":
+        train_dataset_size = DATASET_SCALES[dataset_size][0]
+        val_dataset_size = DATASET_SCALES[dataset_size][1]
+        test_dataset_size = DATASET_SCALES[dataset_size][2]
+    else:
+        train_dataset_size = 0
+        val_dataset_size = 0
+        test_dataset_size = 0
+
+    convert_bdd100k_dataset_to_coco(bdd100k_path, cats, "val", val_dataset_size)
+    convert_bdd100k_dataset_to_coco(bdd100k_path, cats, "train", train_dataset_size)
+    convert_bdd100k_dataset_to_coco(bdd100k_path, cats, "test", test_dataset_size)
+
+    print(f"Converted {dataset_size} size of annotations")
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Convert BDD100K to COCO format")
+    parser.add_argument(
+        "--size",
+        type=str,
+        default="full",
+        help="dataset size: sample, small, full",
+    )
+    parser.add_argument(
+        "--visualize", type=bool, default=False, help="visualize annotations"
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    convert_bdd100k_to_coco("/workspace/YOLOX/datasets/bdd100k/")
-    cocofmt_annotation_visualize(
-        "/workspace/YOLOX/datasets/bdd100k/", "val", save_result=True
+    args = get_args()
+    convert_bdd100k_to_coco(
+        "/workspace/YOLOX/datasets/bdd100k/", dataset_size=args.size
     )
+    if args.visualize:
+        cocofmt_annotation_visualize(
+            "/workspace/YOLOX/datasets/bdd100k/", "val", save_result=True
+        )
