@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  yolox:
+    build: .
+    image: yolox-dev:0.3
+    container_name: yolox
+    stdin_open: true  # -i equivalent
+    tty: true         # -t equivalent
+    shm_size: '2gb'  # 增加共享内存
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /home/zyb/YOLOX:/workspace/YOLOX
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    devices:
+      - "/dev/video0:/dev/video0:mwr"
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+    privileged: true
+    # Remove container after exit (--rm equivalent)
+    restart: "no"
+    # Default command is to launch a bash shell
+    command: ["bash"]
