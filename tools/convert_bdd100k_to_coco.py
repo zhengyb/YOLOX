@@ -6,9 +6,16 @@
 # @Author: Reuben
 # @Date:   2025-03-13
 #
+# After:
+# 1. save the image directory name as: train2017, val2017, test2017.
+# 2. save the annotation file name as: instances_train.json, instances_val.json, instances_test.json.
+# How to train YOLOX on BDD100k:
+# python tools/train.py -n yolox_s_bdd -d 1 -b 8 --fp16 -o [--cache]
+
 import json
 import os
 import argparse
+
 
 DEBUG = True
 
