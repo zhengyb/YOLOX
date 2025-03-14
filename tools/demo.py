@@ -89,6 +89,13 @@ def make_parser():
         default=True,
         action="store_true",
     )
+    parser.add_argument(
+        "--rotate",
+        dest="rotate",
+        default=False,
+        action="store_true",
+        help="Rotate the image 180 degrees.",
+    )
     return parser
 
 
@@ -135,13 +142,16 @@ class Predictor(object):
             self.model(x)
             self.model = model_trt
 
-    def inference(self, img):
+    def inference(self, img, rotate=False):
         img_info = {"id": 0}
         if isinstance(img, str):
             img_info["file_name"] = os.path.basename(img)
             img = cv2.imread(img)
         else:
             img_info["file_name"] = None
+        
+        if rotate:
+            img = cv2.rotate(img, cv2.ROTATE_180)
 
         height, width = img.shape[:2]
         img_info["height"] = height
@@ -190,14 +200,14 @@ class Predictor(object):
         return vis_res
 
 
-def image_demo(predictor, vis_folder, path, current_time, save_result):
+def image_demo(predictor, vis_folder, path, current_time, save_result, rotate=False):
     if os.path.isdir(path):
         files = get_image_list(path)
     else:
         files = [path]
     files.sort()
     for image_name in files:
-        outputs, img_info = predictor.inference(image_name)
+        outputs, img_info = predictor.inference(image_name, rotate=rotate)
         result_image = predictor.visual(outputs[0], img_info, predictor.confthre)
         if save_result:
             save_folder = os.path.join(
@@ -233,7 +243,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
     while True:
         ret_val, frame = cap.read()
         if ret_val:
-            outputs, img_info = predictor.inference(frame)
+            outputs, img_info = predictor.inference(frame, rotate=args.rotate)
             result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
             if args.save_result:
                 vid_writer.write(result_frame)
@@ -319,7 +329,7 @@ def main(exp, args):
     )
     current_time = time.localtime()
     if args.demo == "image":
-        image_demo(predictor, vis_folder, args.path, current_time, args.save_result)
+        image_demo(predictor, vis_folder, args.path, current_time, args.save_result, args.rotate)
     elif args.demo == "video" or args.demo == "webcam":
         imageflow_demo(predictor, vis_folder, current_time, args)
 
