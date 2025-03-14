@@ -12,7 +12,7 @@ import cv2
 import torch
 
 from yolox.data.data_augment import ValTransform
-from yolox.data.datasets import COCO_CLASSES
+from yolox.data.datasets import COCO_CLASSES, BDD_CLASSES
 from yolox.exp import get_exp
 from yolox.utils import fuse_model, get_model_info, postprocess, vis
 
@@ -82,6 +82,12 @@ def make_parser():
         default=False,
         action="store_true",
         help="Using TensorRT model for testing.",
+    )
+    parser.add_argument(
+        "--bdd",
+        dest="bdd",
+        default=True,
+        action="store_true",
     )
     return parser
 
@@ -302,9 +308,14 @@ def main(exp, args):
         trt_file = None
         decoder = None
 
+    if args.bdd:
+        classes_name = BDD_CLASSES
+    else:
+        classes_name = COCO_CLASSES
+
     predictor = Predictor(
-        model, exp, COCO_CLASSES, trt_file, decoder,
-        args.device, args.fp16, args.legacy,
+        model, exp, cls_names=classes_name, trt_file=trt_file, decoder=decoder,
+        device=args.device, fp16=args.fp16, legacy=args.legacy,
     )
     current_time = time.localtime()
     if args.demo == "image":

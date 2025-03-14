@@ -4,6 +4,7 @@
 
 from .coco import COCODataset
 from .coco_classes import COCO_CLASSES
+from .bdd_classes import BDD_CLASSES
 from .datasets_wrapper import CacheDataset, ConcatDataset, Dataset, MixConcatDataset
 from .mosaicdetection import MosaicDetection
 from .voc import VOCDetection
